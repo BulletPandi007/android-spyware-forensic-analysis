@@ -1,0 +1,67 @@
+# Android Spyware IOC Master List
+# Project: Hybrid Static-Dynamic Forensic Analysis
+# Generated: April 2026
+# ═══════════════════════════════════════════════════════
+
+## NETWORK IOCs
+
+### Confirmed Malicious Domains
+ping.ynrkone.top                  # Antidot C2 — flagged malicious by ANY.RUN
+pip.uiimoss.top                   # Antidot secondary C2 — unknown reputation
+log-service-*.aliyuncs.com        # Antidot C2 logging — Alibaba Cloud CDN abuse
+losthed.clay.rest                 # ClayRAT live C2 — Python Werkzeug server
+codex-team.tk                     # BraTA card relay API
+
+### Confirmed Malicious IPs
+147.139.146.211                   # Antidot C2 — Alibaba Cloud (CN)
+147.139.146.209                   # Antidot C2 — Alibaba Cloud (CN)
+147.139.146.144                   # Antidot C2 — Alibaba Cloud (CN)
+64.188.83.172                     # ClayRAT C2
+
+### Suspicious Domains (Not Confirmed Malicious)
+ipb.parsian-bank.ir               # BraTA phishing kit target API
+echarge.ir                        # BraTA phishing kit referenced
+
+## FILE IOCs
+
+### Package Names (Confirmed in Sandbox)
+com.wetpacd1d.psyd1d              # Antidot — disguised as random app
+com.appd.mercantil                # SpyNote — disguised as merchant/payment app
+sh.abc.shabd                      # BraTA — disguised as legitimate app
+
+### File Hashes (SHA256)
+506033F7A6EA5C9E4D89F9EDCC998ED1F33FB74E4A2A4F32AF8CEC2EC009A906  # antidot.apk
+C496DBB5813E2805F330AB487C66B6BBD3771C5267F9AA05366D576FDA0DCEFB  # brata.apk
+93893EBA96702F963B6E005E8B9AB046DAE883046C9673E8AC0CAA73194BFA74  # clayrat.apk
+0A7337027340DED82BCD507ED6406B25C6F44CC58C646AF4EB332209F805B366  # spynote.apk
+41752E7B3D8374EC74B94EBC258A0FEFD3D41A44BB07A43D85546701AFB50E36  # truthspy.apk
+
+### Embedded Payload
+Mellat.zip                        # BraTA embedded PHP phishing kit
+
+## CREDENTIAL / TOKEN IOCs
+
+### Telegram Bot Token (BraTA C2)
+5339581065:AAEI3MvGuNmc2io57pk8vIQjIVN4PPIUiao
+
+### Server Path (BraTA — leaked in error_log)
+/home/icmmhitg/public_html/text1/Mellat/
+
+## BEHAVIORAL IOCs
+
+### Native Library Signatures
+libx2.so + setupSamsungWindowLayout  # Antidot OEM overlay engine
+libandroidlame.so + lameEncode       # TruthSpy audio exfil pipeline
+libnmmp.so + vmInterpret             # Antidot VM code protection
+
+### Semgrep Pattern Signatures
+com/nmmedit/protect/NativeUtil       # Antidot VM protection SDK
+com/cx/utils/FloatWindowUtils        # Antidot overlay utility
+com/naman14/androidlame/AndroidLame  # TruthSpy audio encoder
+
+### Structural Anomalies
+- APK with >400 obfuscated res/*.xml files  → Antidot indicator
+- APK with Unicode/Arabic filenames in r/   → SpyNote indicator
+- APK containing embedded .zip PHP files    → BraTA indicator
+- APK with 6+ dex files                    → Selfspy indicator
+- v1-only APK signing                      → BraTA (Janus vulnerability)

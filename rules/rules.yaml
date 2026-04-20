@@ -1,0 +1,130 @@
+rules:
+
+  # ── SMS Interception ─────────────────────────────────────
+  - id: sms-read-intercept
+    patterns:
+      - pattern: $MGR.getInboxMessages(...)
+    message: "SMS inbox read — possible exfiltration"
+    languages: [java]
+    severity: ERROR
+
+  - id: sms-receiver
+    pattern: |
+      class $C extends BroadcastReceiver {
+        public void onReceive($CTX, $INTENT) { ... }
+      }
+    message: "BroadcastReceiver subclass — check for SMS_RECEIVED intent"
+    languages: [java]
+    severity: WARNING
+
+  # ── Call Monitoring ──────────────────────────────────────
+  - id: call-log-access
+    pattern: $X.query(CallLog.Calls.CONTENT_URI, ...)
+    message: "Call log being queried"
+    languages: [java]
+    severity: ERROR
+
+  - id: phone-state-listener
+    pattern: $TM.listen($LISTENER, PhoneStateListener.LISTEN_CALL_STATE)
+    message: "Listening to phone call state — common in spyware"
+    languages: [java]
+    severity: ERROR
+
+  # ── Location Tracking ────────────────────────────────────
+  - id: gps-location-request
+    patterns:
+      - pattern: $LM.requestLocationUpdates(...)
+    message: "GPS location updates requested"
+    languages: [java]
+    severity: ERROR
+
+  # ── Camera / Microphone ──────────────────────────────────
+  - id: camera-capture
+    pattern: $CAM.open(...)
+    message: "Camera opened — check if user-triggered"
+    languages: [java]
+    severity: WARNING
+
+  - id: audio-record
+    pattern: |
+      new MediaRecorder();
+    message: "MediaRecorder instantiated — possible mic recording"
+    languages: [java]
+    severity: ERROR
+
+  # ── Contact Exfiltration ─────────────────────────────────
+  - id: contacts-read
+    pattern: $X.query(ContactsContract.Contacts.CONTENT_URI, ...)
+    message: "Contacts being read"
+    languages: [java]
+    severity: ERROR
+
+  # ── Persistence Mechanisms ───────────────────────────────
+  - id: boot-persistence
+    pattern: |
+      class $C extends BroadcastReceiver {
+        public void onReceive($CTX, Intent $I) {
+          ...
+          $I.getAction().equals("android.intent.action.BOOT_COMPLETED")
+          ...
+        }
+      }
+    message: "Boot persistence — app restarts on device reboot"
+    languages: [java]
+    severity: ERROR
+
+  - id: job-scheduler-persistence
+    pattern: $JS.schedule(new JobInfo.Builder(...).build())
+    message: "JobScheduler used — possible stealthy persistence"
+    languages: [java]
+    severity: WARNING
+
+  # ── C2 Communication ─────────────────────────────────────
+  - id: hardcoded-url
+    pattern: $X = "http://..."
+    message: "Hardcoded HTTP URL — possible C2 address"
+    languages: [java]
+    severity: ERROR
+
+  - id: socket-connection
+    pattern: new Socket($HOST, $PORT)
+    message: "Raw socket connection — common in SpyNote/SpyMax RATs"
+    languages: [java]
+    severity: ERROR
+
+  - id: http-post-data
+    pattern: $CONN.setRequestMethod("POST")
+    message: "HTTP POST — check what data is being sent"
+    languages: [java]
+    severity: WARNING
+
+  # ── Anti-Analysis / Evasion ──────────────────────────────
+  - id: emulator-detection
+    pattern: Build.FINGERPRINT.contains("generic")
+    message: "Emulator fingerprint check — anti-analysis evasion"
+    languages: [java]
+    severity: ERROR
+
+  - id: root-check
+    patterns:
+      - pattern: new File("/system/bin/su").exists()
+      - pattern: Runtime.getRuntime().exec("su")
+    message: "Root/su check detected"
+    languages: [java]
+    severity: WARNING
+
+  # ── Data Exfiltration Helpers ────────────────────────────
+  - id: file-upload
+    pattern: |
+      $X.write($DATA);
+      ...
+      $CONN.getOutputStream()
+    message: "File write followed by network stream — possible exfil"
+    languages: [java]
+    severity: WARNING
+
+  - id: clipboard-access
+    pattern: $CM.getPrimaryClip()
+    message: "Clipboard being read — credential theft risk"
+    languages: [java]
+    severity: ERROR

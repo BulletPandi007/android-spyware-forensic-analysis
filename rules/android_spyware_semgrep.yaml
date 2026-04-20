@@ -1,0 +1,127 @@
+rules:
+
+  # ── Confirmed: Antidot overlay engine pattern ───────────
+  - id: antidot-oem-overlay-setup
+    patterns:
+      - pattern: |
+          void $FUNC(JNIEnv* $ENV, jobject $OBJ, jstring $STR, ...) { ... }
+    message: "OEM-specific overlay setup function — pattern matches Antidot banking trojan"
+    languages: [c]
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      sample: antidot
+      confirmed_by: Ghidra native analysis
+
+  # ── Confirmed: TruthSpy audio recording via LAME ────────
+  - id: truthspy-lame-audio-exfil
+    pattern: |
+      $X = new AndroidLame();
+    message: "AndroidLame instantiation — open-source MP3 encoder weaponized for audio exfiltration (TruthSpy pattern)"
+    languages: [java]
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      sample: truthspy
+      confirmed_by: Ghidra + Semgrep
+
+  # ── Confirmed: Telegram bot C2 exfiltration ─────────────
+  - id: telegram-bot-c2-exfil
+    patterns:
+      - pattern: $URL = "https://api.telegram.org/bot$TOKEN/sendMessage..."
+    message: "Telegram bot API used for C2 data exfiltration — confirmed in BraTA phishing kit"
+    languages: [java, php]
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      sample: brata
+      confirmed_by: PHP phishing kit analysis
+
+  # ── Confirmed: Accessibility service abuse ──────────────
+  - id: accessibility-service-no-permissions
+    pattern: |
+      class $C extends AccessibilityService {
+        public void onAccessibilityEvent(AccessibilityEvent $E) { ... }
+      }
+    message: "Accessibility service subclass — SpyNote pattern: zero declared permissions but full device surveillance"
+    languages: [java]
+    severity: ERROR
+    metadata:
+      confidence: MEDIUM
+      sample: spynote
+      false_positive: Legitimate accessibility apps
+
+  # ── Confirmed: Dynamic class loading (VM protection) ────
+  - id: dynamic-class-loading-evasion
+    patterns:
+      - pattern: DexClassLoader $X = new DexClassLoader(...)
+      - pattern: $CL.loadClass($NAME)
+    message: "Dynamic class loading detected — Antidot VM protection pattern, hides core logic from static analysis"
+    languages: [java]
+    severity: WARNING
+    metadata:
+      confidence: MEDIUM
+      sample: antidot
+      confirmed_by: Ghidra libnmmp.so analysis
+
+  # ── Confirmed: Boot persistence ─────────────────────────
+  - id: boot-persistence-receiver
+    pattern: |
+      class $C extends BroadcastReceiver {
+        public void onReceive(Context $CTX, Intent $I) {
+          ...
+          $I.getAction().equals("android.intent.action.BOOT_COMPLETED")
+          ...
+        }
+      }
+    message: "BOOT_COMPLETED receiver — app persists across reboots. Confirmed in Antidot, ClayRAT, BraTA, TruthSpy"
+    languages: [java]
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      samples: antidot, clayrat, brata, truthspy
+
+  # ── Confirmed: Screen state check (banking trojan) ──────
+  - id: screen-state-surveillance
+    patterns:
+      - pattern: $PM.isScreenOn()
+      - pattern: $DM.isScreenOn()
+    message: "Screen state check — banking trojans wait for victim interaction before activating overlay"
+    languages: [java]
+    severity: WARNING
+    metadata:
+      confidence: MEDIUM
+      sample: antidot
+      confirmed_by: ANY.RUN dynamic analysis
+
+  # ── Confirmed: Device admin check ───────────────────────
+  - id: device-admin-privilege-check
+    pattern: $DPM.isAdminActive($COMPONENT)
+    message: "Device admin status check — spyware confirms elevated privileges before acting"
+    languages: [java]
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      sample: antidot
+      confirmed_by: ANY.RUN behavioral analysis
+
+  # ── Heuristic: Installed app enumeration ─────────────────
+  - id: installed-app-enumeration
+    pattern: $PM.getInstalledApplications(...)
+    message: "Installed app enumeration — banking trojans scan for target banking apps to overlay"
+    languages: [java]
+    severity: WARNING
+    metadata:
+      confidence: MEDIUM
+      samples: antidot, spynote
+
+  # ── Heuristic: SMS + network = exfil risk ────────────────
+  - id: sms-read-with-network
+    patterns:
+      - pattern: $X.query(Telephony.Sms.CONTENT_URI, ...)
+    message: "SMS content provider query — combined with network access indicates exfiltration risk"
+    languages: [java]
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      samples: brata, truthspy, spynote
